@@ -136,6 +136,7 @@ function resolve_resources(){
     echo "---" >> $resolved_file_name
     #first prefix all test images with "test-", then replace all image names with proper repository
     sed -e 's/\(.* image: \)\(github.com\)\(.*\/\)\(test\/\)\(.*\)/\1\2 \3\4test-\5/' $yaml | \
+    sed -e 's%github.com/knative/eventing/pkg/controller/eventing/inmemory/controller%'"$INTERNAL_REGISTRY"'\/'"$EVENTING_NAMESPACE"'\/eventing-in-memory-channel-controller%' | \
     sed -e 's/\(.* image: \)\(github.com\)\(.*\/\)\(.*\)/\1 '"$INTERNAL_REGISTRY"'\/'"$EVENTING_NAMESPACE"'\/eventing-\4/' >> $resolved_file_name
   done
 
