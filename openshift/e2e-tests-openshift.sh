@@ -165,6 +165,7 @@ function run_e2e_tests(){
   report_go_test \
     -v -tags=e2e -count=1 -timeout=20m \
     ./test/e2e \
+    --tag latest \
     --kubeconfig $KUBECONFIG \
     --dockerrepo ${INTERNAL_REGISTRY}/${EVENTING_NAMESPACE} \
     ${options} || return 1
