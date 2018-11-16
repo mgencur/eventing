@@ -107,6 +107,7 @@ function install_knative_eventing(){
   oc create namespace $EVENTING_NAMESPACE
 
   # Grant the necessary privileges to the service accounts Knative will use:
+  oc adm policy add-scc-to-user privileged -z in-memory-channel-dispatcher -n $EVENTING_NAMESPACE
   oc adm policy add-scc-to-user anyuid -z eventing-controller -n $EVENTING_NAMESPACE
   oc adm policy add-cluster-role-to-user cluster-admin -z eventing-controller -n $EVENTING_NAMESPACE
 
