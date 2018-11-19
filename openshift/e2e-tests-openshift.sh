@@ -107,9 +107,14 @@ function install_knative_eventing(){
   oc create namespace $EVENTING_NAMESPACE
 
   # Grant the necessary privileges to the service accounts Knative will use:
-  oc adm policy add-scc-to-user privileged -z in-memory-channel-dispatcher -n $EVENTING_NAMESPACE
   oc adm policy add-scc-to-user anyuid -z eventing-controller -n $EVENTING_NAMESPACE
   oc adm policy add-cluster-role-to-user cluster-admin -z eventing-controller -n $EVENTING_NAMESPACE
+
+  oc adm policy add-scc-to-user anyuid -z in-memory-channel-controller -n $EVENTING_NAMESPACE
+  oc adm policy add-cluster-role-to-user cluster-admin -z in-memory-channel-controller -n $EVENTING_NAMESPACE
+
+  oc adm policy add-scc-to-user privileged -z in-memory-channel-dispatcher -n $EVENTING_NAMESPACE
+  oc adm policy add-cluster-role-to-user cluster-admin -z in-memory-channel-dispatcher -n $EVENTING_NAMESPACE
 
   resolve_resources config/ $EVENTING_NAMESPACE eventing-resolved.yaml
   oc apply -f eventing-resolved.yaml
@@ -118,6 +123,12 @@ function install_knative_eventing(){
   oc set env -n $EVENTING_NAMESPACE deployment/eventing-controller SSL_CERT_FILE=/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
 
   wait_until_pods_running $EVENTING_NAMESPACE
+}
+
+function install_in_memory_channel_provisioner(){
+  header "Standing up In-Memory ClusterChannelProvisioner"
+  resolve_resources config/provisioners/in-memory-channel/ $EVENTING_NAMESPACE channel-resolved.yaml
+  oc apply -f channel-resolved.yaml
 }
 
 function create_test_resources() {
@@ -132,7 +143,7 @@ function create_test_resources() {
 function resolve_resources(){
   local dir=$1
   local resolved_file_name=$3
-  for yaml in $(find $dir -name "*.yaml"); do
+  for yaml in $(find $dir -maxdepth 1 -name "*.yaml"); do
     echo "---" >> $resolved_file_name
     #first prefix all test images with "test-", then replace all image names with proper repository
     sed -e 's/\(.* image: \)\(github.com\)\(.*\/\)\(test\/\)\(.*\)/\1\2 \3\4test-\5/' $yaml | \
@@ -201,8 +212,14 @@ function delete_knative_eventing(){
   oc delete --ignore-not-found=true -f eventing-resolved.yaml
 }
 
+function delete_in_memory_channel_provisioner(){
+  header "Bringing down In-Memory ClusterChannelProvisioner"
+  oc delete --ignore-not-found=true -f channel-resolved.yaml
+}
+
 function teardown() {
   delete_test_namespace
+  delete_in_memory_channel_provisioner
   delete_knative_eventing
   delete_knative_eventing_sources
   delete_serving_openshift
@@ -229,8 +246,6 @@ enable_admission_webhooks
 
 teardown
 
-create_test_namespace
-
 install_istio
 
 enable_docker_schema2
@@ -240,6 +255,10 @@ install_knative_serving
 install_knative_eventing_sources
 
 install_knative_eventing
+
+install_in_memory_channel_provisioner
+
+create_test_namespace
 
 create_test_resources
 
