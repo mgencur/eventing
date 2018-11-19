@@ -107,17 +107,20 @@ function install_knative_eventing(){
   oc create namespace $EVENTING_NAMESPACE
 
   # Grant the necessary privileges to the service accounts Knative will use:
+  oc annotate clusterrolebinding.rbac cluster-admin 'rbac.authorization.kubernetes.io/autoupdate=false' --overwrite
+  oc annotate clusterrolebinding.rbac cluster-admins 'rbac.authorization.kubernetes.io/autoupdate=false' --overwrite
+
   oc adm policy add-scc-to-user anyuid -z eventing-controller -n $EVENTING_NAMESPACE
-  oc adm policy add-cluster-role-to-user cluster-admin -z eventing-controller -n $EVENTING_NAMESPACE
-
+  oc adm policy add-scc-to-user anyuid -z in-memory-channel-dispatcher -n $EVENTING_NAMESPACE
   oc adm policy add-scc-to-user anyuid -z in-memory-channel-controller -n $EVENTING_NAMESPACE
-  oc adm policy add-cluster-role-to-user cluster-admin -z in-memory-channel-controller -n $EVENTING_NAMESPACE
-
-  oc adm policy add-scc-to-user privileged -z in-memory-channel-dispatcher -n $EVENTING_NAMESPACE
-  oc adm policy add-cluster-role-to-user cluster-admin -z in-memory-channel-dispatcher -n $EVENTING_NAMESPACE
 
   resolve_resources config/ $EVENTING_NAMESPACE eventing-resolved.yaml
   oc apply -f eventing-resolved.yaml
+
+  oc adm policy add-cluster-role-to-user cluster-admin -z eventing-controller -n $EVENTING_NAMESPACE
+  oc adm policy add-cluster-role-to-user cluster-admin -z in-memory-channel-dispatcher -n $EVENTING_NAMESPACE
+  oc adm policy add-cluster-role-to-user cluster-admin -z in-memory-channel-controller -n $EVENTING_NAMESPACE
+  oc adm policy add-cluster-role-to-user cluster-admin -z default -n knative-sources
 
   echo ">>> Setting SSL_CERT_FILE for Knative Eventing Controller"
   oc set env -n $EVENTING_NAMESPACE deployment/eventing-controller SSL_CERT_FILE=/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
@@ -136,13 +139,20 @@ function create_test_resources() {
   tag_test_images test/test_images
 
   echo ">> Ensuring pods in test namespaces can access test images"
-  oc policy add-role-to-group system:image-puller system:serviceaccounts:${TEST_NAMESPACE} --namespace=${EVENTING_NAMESPACE}
-  oc policy add-role-to-group system:image-puller system:serviceaccounts:${TEST_FUNCTION_NAMESPACE} --namespace=${EVENTING_NAMESPACE}
+  oc policy add-role-to-group system:image-puller system:serviceaccounts:$TEST_NAMESPACE --namespace=$EVENTING_NAMESPACE
+  oc policy add-role-to-group system:image-puller system:serviceaccounts:$TEST_FUNCTION_NAMESPACE --namespace=$EVENTING_NAMESPACE
+
+  #Grant additional privileges
+  oc adm policy add-scc-to-user anyuid -z default -n $TEST_FUNCTION_NAMESPACE
+  oc adm policy add-scc-to-user privileged -z default -n $TEST_FUNCTION_NAMESPACE
+  oc adm policy add-scc-to-user anyuid -z e2e-receive-adapter -n $TEST_FUNCTION_NAMESPACE
+  oc adm policy add-scc-to-user privileged -z e2e-receive-adapter -n $TEST_FUNCTION_NAMESPACE
 }
 
 function resolve_resources(){
   local dir=$1
   local resolved_file_name=$3
+  > $resolved_file_name
   for yaml in $(find $dir -maxdepth 1 -name "*.yaml"); do
     echo "---" >> $resolved_file_name
     #first prefix all test images with "test-", then replace all image names with proper repository
