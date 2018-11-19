@@ -232,7 +232,7 @@ function tag_test_images() {
 
   for image_dir in ${image_dirs}; do
     name=$(basename ${image_dir})
-    tag_built_image test-${name} ${name}
+    tag_built_image eventing-test-${name} ${name}
   done
 }
 
