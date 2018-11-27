@@ -1,6 +1,7 @@
 #!/bin/sh 
 
 source $(dirname $0)/../vendor/github.com/knative/test-infra/scripts/e2e-tests.sh
+source $(dirname $0)/kubecon-demo.sh
 
 set -x
 
@@ -228,6 +229,7 @@ function delete_in_memory_channel_provisioner(){
 }
 
 function teardown() {
+  delete_demo
   delete_test_namespace
   delete_in_memory_channel_provisioner
   delete_knative_eventing
@@ -273,5 +275,7 @@ create_test_namespace
 create_test_resources
 
 run_e2e_tests || fail_test
+
+run_demo || fail_test
 
 success
