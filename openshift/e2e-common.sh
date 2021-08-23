@@ -6,6 +6,35 @@ export ZIPKIN_NAMESPACE=$EVENTING_NAMESPACE
 export KNATIVE_DEFAULT_NAMESPACE=$EVENTING_NAMESPACE
 export CONFIG_TRACING_CONFIG="test/config/config-tracing.yaml"
 
+if [ -n "$OPENSHIFT_BUILD_NAMESPACE" ]; then
+  export TEST_IMAGE_TEMPLATE=$(cat <<-END
+{{- with .Name }}
+{{- if eq . "event-flaker"}}$KNATIVE_EVENTING_TEST_EVENT_FLAKER{{end -}}
+{{- if eq . "event-library"}}$KNATIVE_EVENTING_TEST_EVENT_LIBRARY{{end -}}
+{{- if eq . "event-sender"}}$KNATIVE_EVENTING_TEST_EVENT_SENDER{{end -}}
+{{- if eq . "eventshub"}}$KNATIVE_EVENTING_TEST_EVENTSHUB{{end -}}
+{{- if eq . "heartbeats"}}$KNATIVE_EVENTING_TEST_HEARTBEATS{{end -}}
+{{- if eq . "performance"}}$KNATIVE_EVENTING_TEST_PERFORMANCE{{end -}}
+{{- if eq . "print"}}$KNATIVE_EVENTING_TEST_PRINT{{end -}}
+{{- if eq . "recordevents"}}$KNATIVE_EVENTING_TEST_RECORDEVENTS{{end -}}
+{{- if eq . "request-sender"}}$KNATIVE_EVENTING_TEST_REQUEST_SENDER{{end -}}
+{{- if eq . "wathola-fetcher"}}$KNATIVE_EVENTING_TEST_WATHOLA_FETCHER{{end -}}
+{{- if eq . "wathola-forwarder"}}$KNATIVE_EVENTING_TEST_WATHOLA_FORWARDER{{end -}}
+{{- if eq . "wathola-receiver"}}$KNATIVE_EVENTING_TEST_WATHOLA_RECEIVER{{end -}}
+{{- if eq . "wathola-sender"}}$KNATIVE_EVENTING_TEST_WATHOLA_SENDER{{end -}}
+{{end -}}
+END
+)
+elif [ -n "${TEMPLATE:-}" ]; then
+  export TEST_IMAGE_TEMPLATE="$TEMPLATE"
+elif [ -n "${DOCKER_REPO_OVERRIDE:-}" ]; then
+  export TEST_IMAGE_TEMPLATE="${DOCKER_REPO_OVERRIDE}/{{.Name}}"
+elif [ -n "${BRANCH:-}" ]; then
+  export TEST_IMAGE_TEMPLATE="registry.ci.openshift.org/openshift/${BRANCH}:knative-eventing-test-{{.Name}}"
+else
+  export TEST_IMAGE_TEMPLATE="registry.ci.openshift.org/openshift/knative-nightly:knative-eventing-test-{{.Name}}"
+fi
+
 function scale_up_workers(){
   local cluster_api_ns="openshift-machine-api"
 
@@ -149,17 +178,16 @@ function install_knative_eventing(){
   cat openshift/release/knative-eventing-ci.yaml > ci
   cat openshift/release/knative-eventing-mtbroker-ci.yaml >> ci
 
-  sed -i -e "s|registry.ci.openshift.org/openshift/knative-.*:knative-eventing-controller|${IMAGE_FORMAT//\$\{component\}/knative-eventing-controller}|g"                               ci
-  sed -i -e "s|registry.ci.openshift.org/openshift/knative-.*:knative-eventing-ping|${IMAGE_FORMAT//\$\{component\}/knative-eventing-ping}|g"                                           ci
-  sed -i -e "s|registry.ci.openshift.org/openshift/knative-.*:knative-eventing-mtping|${IMAGE_FORMAT//\$\{component\}/knative-eventing-mtping}|g"                                       ci
-  sed -i -e "s|registry.ci.openshift.org/openshift/knative-.*:knative-eventing-apiserver-receive-adapter|${IMAGE_FORMAT//\$\{component\}/knative-eventing-apiserver-receive-adapter}|g" ci
-  sed -i -e "s|registry.ci.openshift.org/openshift/knative-.*:knative-eventing-webhook|${IMAGE_FORMAT//\$\{component\}/knative-eventing-webhook}|g"                                     ci
-  sed -i -e "s|registry.ci.openshift.org/openshift/knative-.*:knative-eventing-channel-controller|${IMAGE_FORMAT//\$\{component\}/knative-eventing-channel-controller}|g"               ci
-  sed -i -e "s|registry.ci.openshift.org/openshift/knative-.*:knative-eventing-channel-dispatcher|${IMAGE_FORMAT//\$\{component\}/knative-eventing-channel-dispatcher}|g"               ci
-  sed -i -e "s|registry.ci.openshift.org/openshift/knative-.*:knative-eventing-mtbroker-ingress|${IMAGE_FORMAT//\$\{component\}/knative-eventing-mtbroker-ingress}|g"                   ci
-  sed -i -e "s|registry.ci.openshift.org/openshift/knative-.*:knative-eventing-mtbroker-filter|${IMAGE_FORMAT//\$\{component\}/knative-eventing-mtbroker-filter}|g"                     ci
-  sed -i -e "s|registry.ci.openshift.org/openshift/knative-.*:knative-eventing-mtchannel-broker|${IMAGE_FORMAT//\$\{component\}/knative-eventing-mtchannel-broker}|g"                   ci
-  sed -i -e "s|registry.ci.openshift.org/openshift/knative-.*:knative-eventing-sugar-controller|${IMAGE_FORMAT//\$\{component\}/knative-eventing-sugar-controller}|g"                   ci
+  sed -i -e "s|registry.ci.openshift.org/openshift/knative-.*:knative-eventing-controller|${KNATIVE_EVENTING_CONTROLLER}|g"                               ci
+  sed -i -e "s|registry.ci.openshift.org/openshift/knative-.*:knative-eventing-mtping|${KNATIVE_EVENTING_MTPING}|g"                                       ci
+  sed -i -e "s|registry.ci.openshift.org/openshift/knative-.*:knative-eventing-apiserver-receive-adapter|${KNATIVE_EVENTING_APISERVER_RECEIVE_ADAPTER}|g" ci
+  sed -i -e "s|registry.ci.openshift.org/openshift/knative-.*:knative-eventing-webhook|${KNATIVE_EVENTING_WEBHOOK}|g"                                     ci
+  sed -i -e "s|registry.ci.openshift.org/openshift/knative-.*:knative-eventing-channel-controller|${KNATIVE_EVENTING_CHANNEL_CONTROLLER}|g"               ci
+  sed -i -e "s|registry.ci.openshift.org/openshift/knative-.*:knative-eventing-channel-dispatcher|${KNATIVE_EVENTING_CHANNEL_DISPATCHER}|g"               ci
+  sed -i -e "s|registry.ci.openshift.org/openshift/knative-.*:knative-eventing-mtbroker-ingress|${KNATIVE_EVENTING_MTBROKER_INGRESS}|g"                   ci
+  sed -i -e "s|registry.ci.openshift.org/openshift/knative-.*:knative-eventing-mtbroker-filter|${KNATIVE_EVENTING_MTBROKER_FILTER}|g"                     ci
+  sed -i -e "s|registry.ci.openshift.org/openshift/knative-.*:knative-eventing-mtchannel-broker|${KNATIVE_EVENTING_MTCHANNEL_BROKER}|g"                   ci
+  sed -i -e "s|registry.ci.openshift.org/openshift/knative-.*:knative-eventing-sugar-controller|${KNATIVE_EVENTING_SUGAR_CONTROLLER}|g"                   ci
 
   oc apply -f ci || return 1
   rm ci
@@ -206,7 +234,7 @@ function run_e2e_tests(){
   local channels=messaging.knative.dev/v1:Channel,messaging.knative.dev/v1:InMemoryChannel
   local sources=sources.knative.dev/v1beta2:PingSource,sources.knative.dev/v1:ApiServerSource,sources.knative.dev/v1:ContainerSource
 
-  local common_opts=" -channels=$channels -sources=$sources --kubeconfig $KUBECONFIG --imagetemplate $TEST_IMAGE_TEMPLATE"
+  local common_opts=" -channels=$channels -sources=$sources --kubeconfig $KUBECONFIG"
   if [ -n "$test_name" ]; then
       local run_command="-run ^(${test_name})$"
   fi
@@ -217,6 +245,7 @@ function run_e2e_tests(){
   go_test_e2e -timeout=50m -parallel=20 ./test/e2e \
     "$run_command" \
     -brokerclass=MTChannelBasedBroker \
+    -imagetemplate="$TEST_IMAGE_TEMPLATE" \
     $common_opts || failed=$?
 
   return $failed
@@ -232,7 +261,7 @@ function run_conformance_tests(){
   local channels=messaging.knative.dev/v1:Channel,messaging.knative.dev/v1:InMemoryChannel
   local sources=sources.knative.dev/v1beta2:PingSource,sources.knative.dev/v1:ApiServerSource,sources.knative.dev/v1:ContainerSource
 
-  local common_opts=" -channels=$channels -sources=$sources --kubeconfig $KUBECONFIG --imagetemplate $TEST_IMAGE_TEMPLATE"
+  local common_opts=" -channels=$channels -sources=$sources --kubeconfig $KUBECONFIG"
   if [ -n "$test_name" ]; then
       local run_command="-run ^(${test_name})$"
   fi
@@ -243,6 +272,7 @@ function run_conformance_tests(){
   go_test_e2e -timeout=30m -parallel=12 ./test/conformance \
     "$run_command" \
     -brokerclass=MTChannelBasedBroker \
+    -imagetemplate="$TEST_IMAGE_TEMPLATE" \
     $common_opts || failed=$?
 
   return $failed
