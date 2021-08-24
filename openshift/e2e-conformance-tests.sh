@@ -8,8 +8,6 @@ set -Eeuox pipefail
 
 env
 
-scale_up_workers || exit 1
-
 failed=0
 
 (( !failed )) && install_serverless || failed=1
