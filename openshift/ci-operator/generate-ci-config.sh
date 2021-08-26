@@ -63,6 +63,97 @@ canonical_go_repository: knative.dev/eventing
 binary_build_commands: make install
 test_binary_build_commands: make test-install
 tests:
+EOF
+if [[ "$openshift" == "4.8" ]]; then
+cat <<EOF
+- as: e2e-aws-ocp-${openshift//./}
+  cluster_claim:
+    architecture: amd64
+    cloud: aws
+    owner: openshift-ci
+    product: ocp
+    timeout: 1h0m0s
+    version: "4.8"
+  steps:
+    test:
+    - as: test
+      cli: latest
+      commands: make test-e2e
+      dependencies:
+$image_deps
+      from: src
+      resources:
+        requests:
+          cpu: 100m
+      timeout: 4h0m0s
+    workflow: generic-claim
+- as: conformance-aws-ocp-${openshift//./}
+  cluster_claim:
+    architecture: amd64
+    cloud: aws
+    owner: openshift-ci
+    product: ocp
+    timeout: 1h0m0s
+    version: "4.8"
+  steps:
+    test:
+    - as: test
+      cli: latest
+      commands: make test-conformance
+      dependencies:
+$image_deps
+      from: src
+      resources:
+        requests:
+          cpu: 100m
+      timeout: 4h0m0s
+    workflow: generic-claim
+- as: reconciler-aws-ocp-${openshift//./}
+  cluster_claim:
+    architecture: amd64
+    cloud: aws
+    owner: openshift-ci
+    product: ocp
+    timeout: 1h0m0s
+    version: "4.8"
+  steps:
+    test:
+    - as: test
+      cli: latest
+      commands: make test-reconciler
+      dependencies:
+$image_deps
+      from: src
+      resources:
+        requests:
+          cpu: 100m
+      timeout: 4h0m0s
+    workflow: generic-claim
+- as: e2e-aws-ocp-${openshift//./}-continuous
+  cluster_claim:
+    architecture: amd64
+    cloud: aws
+    owner: openshift-ci
+    product: ocp
+    timeout: 1h0m0s
+    version: "4.8"
+  cron: 0 */12 * * 1-5
+  steps:
+    test:
+    - as: test
+      cli: latest
+      commands: make test-e2e
+      dependencies:
+$image_deps
+      from: src
+      resources:
+        requests:
+          cpu: 100m
+      timeout: 4h0m0s
+    workflow: generic-claim
+EOF
+else
+cat <<EOF
 - as: e2e-aws-ocp-${openshift//./}
   steps:
     cluster_profile: aws
@@ -124,6 +215,9 @@ $image_deps
           cpu: 100m
       timeout: 4h0m0s
     workflow: ipi-aws
+EOF
+fi
+cat <<EOF
 resources:
   '*':
     limits:
