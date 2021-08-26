@@ -8,6 +8,37 @@ if [[ "$branch" == "knative-next" ]]; then
     branch="knative-nightly"
 fi
 
+core_images=$(find ./openshift/ci-operator/knative-images -mindepth 1 -maxdepth 1 -type d | LC_COLLATE=posix sort)
+test_images=$(find ./openshift/ci-operator/knative-test-images -mindepth 1 -maxdepth 1 -type d | LC_COLLATE=posix sort)
+
+function print_image_dependencies {
+  for img in $core_images; do
+    image_base=knative-eventing-$(basename $img)
+    to_image=$(echo ${image_base//[_.]/-})
+    to_image=$(echo ${to_image//v0/upgrade-v0})
+    to_image=$(echo ${to_image//migrate/storage-version-migration})
+    image_env=$(echo ${to_image//-/_})
+    image_env=$(echo ${image_env^^})
+    cat <<EOF
+      - env: $image_env
+        name: $to_image
+EOF
+  done
+
+  for img in $test_images; do
+    image_base=knative-eventing-test-$(basename $img)
+    to_image=$(echo ${image_base//_/-})
+    image_env=$(echo ${to_image//-/_})
+    image_env=$(echo ${image_env^^})
+    cat <<EOF
+      - env: $image_env
+        name: $to_image
+EOF
+  done
+}
+
+image_deps=$(print_image_dependencies)
+
 cat <<EOF
 tag_specification:
   cluster: https://api.ci.openshift.org
@@ -39,6 +70,8 @@ tests:
     - as: test
       cli: latest
       commands: make test-e2e
+      dependencies:
+$image_deps
       from: src
       resources:
         requests:
@@ -52,6 +85,8 @@ tests:
     - as: test
       cli: latest
       commands: make test-conformance
+      dependencies:
+$image_deps
       from: src
       resources:
         requests:
@@ -65,6 +100,8 @@ tests:
     - as: test
       cli: latest
       commands: make test-reconciler
+      dependencies:
+$image_deps
       from: src
       resources:
         requests:
@@ -79,6 +116,8 @@ tests:
     - as: test
       cli: latest
       commands: make test-e2e
+      dependencies:
+$image_deps
       from: src
       resources:
         requests:
@@ -102,7 +141,6 @@ resources:
 images:
 EOF
 
-core_images=$(find ./openshift/ci-operator/knative-images -mindepth 1 -maxdepth 1 -type d | LC_COLLATE=posix sort)
 for img in $core_images; do
   image_base=$(basename $img)
   to_image=$(echo ${image_base//[_.]/-})
@@ -120,7 +158,6 @@ for img in $core_images; do
 EOF
 done
 
-test_images=$(find ./openshift/ci-operator/knative-test-images -mindepth 1 -maxdepth 1 -type d | LC_COLLATE=posix sort)
 for img in $test_images; do
   image_base=$(basename $img)
   to_image=$(echo ${image_base//_/-})
