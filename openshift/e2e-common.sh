@@ -5,9 +5,7 @@ export SYSTEM_NAMESPACE=$EVENTING_NAMESPACE
 export ZIPKIN_NAMESPACE=$EVENTING_NAMESPACE
 export KNATIVE_DEFAULT_NAMESPACE=$EVENTING_NAMESPACE
 export CONFIG_TRACING_CONFIG="test/config/config-tracing.yaml"
-
-if [ -n "$OPENSHIFT_BUILD_NAMESPACE" ]; then
-  export TEST_IMAGE_TEMPLATE=$(cat <<-END
+export EVENTING_TEST_IMAGE_TEMPLATE=$(cat <<-END
 {{- with .Name }}
 {{- if eq . "event-flaker"}}$KNATIVE_EVENTING_TEST_EVENT_FLAKER{{end -}}
 {{- if eq . "event-library"}}$KNATIVE_EVENTING_TEST_EVENT_LIBRARY{{end -}}
@@ -25,15 +23,6 @@ if [ -n "$OPENSHIFT_BUILD_NAMESPACE" ]; then
 {{end -}}
 END
 )
-elif [ -n "${TEMPLATE:-}" ]; then
-  export TEST_IMAGE_TEMPLATE="$TEMPLATE"
-elif [ -n "${DOCKER_REPO_OVERRIDE:-}" ]; then
-  export TEST_IMAGE_TEMPLATE="${DOCKER_REPO_OVERRIDE}/{{.Name}}"
-elif [ -n "${BRANCH:-}" ]; then
-  export TEST_IMAGE_TEMPLATE="registry.ci.openshift.org/openshift/${BRANCH}:knative-eventing-test-{{.Name}}"
-else
-  export TEST_IMAGE_TEMPLATE="registry.ci.openshift.org/openshift/knative-nightly:knative-eventing-test-{{.Name}}"
-fi
 
 function scale_up_workers(){
   local cluster_api_ns="openshift-machine-api"
