@@ -6,6 +6,8 @@ source "$(dirname "$0")/e2e-common.sh"
 
 set -Eeuox pipefail
 
+export TEST_IMAGE_TEMPLATE="${EVENTING_TEST_IMAGE_TEMPLATE}"
+
 env
 
 failed=0
