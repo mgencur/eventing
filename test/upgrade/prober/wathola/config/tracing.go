@@ -17,17 +17,29 @@ limitations under the License.
 package config
 
 import (
+	"fmt"
+
 	"go.uber.org/zap"
 	"knative.dev/pkg/tracing"
 	tracingconfig "knative.dev/pkg/tracing/config"
 )
+
+var Tracer *tracing.OpenCensusTracer
 
 func SetupTracing() {
 	config, err := tracingconfig.JSONToTracingConfig(Instance.TracingConfig)
 	if err != nil {
 		Log.Warn("Tracing configuration is invalid, using the no-op default", zap.Error(err))
 	}
-	if err = tracing.SetupStaticPublishing(Log, "", config); err != nil {
+	if Tracer, err = SetupStaticPublishing(Log, "", config); err != nil {
 		Log.Fatal("Error setting up trace publishing", zap.Error(err))
 	}
+}
+
+func SetupStaticPublishing(logger *zap.SugaredLogger, serviceName string, cfg *tracingconfig.Config) (*tracing.OpenCensusTracer, error) {
+	oct := tracing.NewOpenCensusTracer(tracing.WithExporter(serviceName, logger))
+	if err := oct.ApplyConfig(cfg); err != nil {
+		return nil, fmt.Errorf("unable to set OpenCensusTracing config: %w", err)
+	}
+	return oct, nil
 }

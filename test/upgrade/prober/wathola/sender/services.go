@@ -50,6 +50,7 @@ var (
 	senderConfig            = &config.Instance.Sender
 	eventSenders            = make([]EventSender, 0, 1)
 	eventSendersWithContext = make([]EventSenderWithContext, 0, 1)
+	tracer                  = config.Tracer
 )
 
 type sender struct {
@@ -65,9 +66,11 @@ func (s *sender) SendContinually() {
 	var shutdownCh = make(chan struct{})
 	defer func() {
 		s.sendFinished()
-		// Give time to send tracing information.
-		// https://github.com/census-instrumentation/opencensus-go/issues/862
-		time.Sleep(1500 * time.Millisecond)
+		if tracer != nil {
+			tracer.Finish()
+			// Let the tracer loop send the last batch of traces.
+			time.Sleep(time.Second)
+		}
 	}()
 
 	go func() {
