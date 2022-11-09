@@ -45,6 +45,7 @@ func Install(name string) feature.StepFn {
 	}
 
 	return func(ctx context.Context, t feature.T) {
+		manifest.PodSecurityCfgFn(ctx, t)(cfg)
 		if _, err := manifest.InstallYamlFS(ctx, yaml, cfg); err != nil {
 			t.Fatal(err)
 		}
