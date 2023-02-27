@@ -66,8 +66,7 @@ func (mr *MagicEnvironment) CreateNamespaceIfNeeded() error {
 }
 
 func (mr *MagicEnvironment) DeleteNamespaceIfNeeded() error {
-	// Skip cleanup when test fails.
-	if mr.managedT.Failed() {
+	if mr.managedT != nil && mr.managedT.Failed() {
 		return nil
 	}
 	if mr.namespaceCreated {
