@@ -98,7 +98,7 @@ function install_serverless(){
 function run_e2e_rekt_tests(){
   header "Running E2E Reconciler Tests"
   
-  images_file=$(dirname $(realpath "$0"))/images.yaml
+  images_file=$(dirname $(realpath "${BASH_SOURCE[0]}"))/images.yaml
   make generate-release
   cat "${images_file}"
 
