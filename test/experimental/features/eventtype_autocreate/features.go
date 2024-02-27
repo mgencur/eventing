@@ -19,13 +19,6 @@ import (
 	"github.com/cloudevents/sdk-go/v2/test"
 	cetest "github.com/cloudevents/sdk-go/v2/test"
 	"k8s.io/apimachinery/pkg/util/sets"
-	sourcesv1 "knative.dev/eventing/pkg/apis/sources/v1"
-	"knative.dev/eventing/test/rekt/resources/broker"
-	"knative.dev/eventing/test/rekt/resources/channel_impl"
-	"knative.dev/eventing/test/rekt/resources/eventtype"
-	"knative.dev/eventing/test/rekt/resources/pingsource"
-	"knative.dev/eventing/test/rekt/resources/subscription"
-	"knative.dev/eventing/test/rekt/resources/trigger"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 	"knative.dev/reconciler-test/pkg/eventshub"
 	"knative.dev/reconciler-test/pkg/eventshub/assert"
@@ -33,6 +26,14 @@ import (
 	"knative.dev/reconciler-test/pkg/k8s"
 	"knative.dev/reconciler-test/pkg/manifest"
 	"knative.dev/reconciler-test/pkg/resources/service"
+
+	sourcesv1 "knative.dev/eventing/pkg/apis/sources/v1"
+	"knative.dev/eventing/test/rekt/resources/broker"
+	"knative.dev/eventing/test/rekt/resources/channel_impl"
+	"knative.dev/eventing/test/rekt/resources/eventtype"
+	"knative.dev/eventing/test/rekt/resources/pingsource"
+	"knative.dev/eventing/test/rekt/resources/subscription"
+	"knative.dev/eventing/test/rekt/resources/trigger"
 )
 
 func AutoCreateEventTypesOnIMC() *feature.Feature {
@@ -65,7 +66,9 @@ func AutoCreateEventTypesOnIMC() *feature.Feature {
 
 	f.Alpha("imc").
 		Must("deliver events to subscriber", assert.OnStore(sink).MatchEvent(cetest.HasId(event.ID())).AtLeast(1)).
-		Must("create event type", eventtype.WaitForEventType(eventtype.AssertPresent(expectedTypes)))
+		Must("create event type", eventtype.WaitForEventType(
+			eventtype.AssertReady(expectedTypes),
+			eventtype.AssertPresent(expectedTypes)))
 
 	return f
 }
@@ -95,7 +98,9 @@ func AutoCreateEventTypesOnBroker(brokerName string) *feature.Feature {
 
 	f.Alpha("broker").
 		Must("deliver events to subscriber", assert.OnStore(sink).MatchEvent(cetest.HasId(event.ID())).AtLeast(1)).
-		Must("create event type", eventtype.WaitForEventType(eventtype.AssertExactPresent(expectedTypes)))
+		Must("create event type", eventtype.WaitForEventType(
+			eventtype.AssertReady(expectedTypes),
+			eventtype.AssertExactPresent(expectedTypes)))
 
 	return f
 }
@@ -135,6 +140,7 @@ func AutoCreateEventTypeEventsFromPingSource() *feature.Feature {
 		Must("delivers events on broker with URI", assert.OnStore(sink).MatchEvent(
 			test.HasType(sourcesv1.PingSourceEventType)).AtLeast(1)).
 		Must("PingSource test eventtypes match", eventtype.WaitForEventType(
+			eventtype.AssertReady(expectedCeTypes),
 			eventtype.AssertPresent(expectedCeTypes)))
 
 	return f
