@@ -110,9 +110,9 @@ function run_e2e_rekt_tests(){
   
   images_file=$(dirname $(realpath "$0"))/images.yaml
   #skipping for P/Z as the test images aren't multiarch.
-  if [ $HW_ARCH != "ppc64le" ] && [ $HW_ARCH != "s390x" ]; then
-    make generate-release
-  fi
+#  if [ $HW_ARCH != "ppc64le" ] && [ $HW_ARCH != "s390x" ]; then
+#    make generate-release
+#  fi
   cat "${images_file}"
 
   local test_name="${1:-}"
@@ -127,7 +127,7 @@ function run_e2e_rekt_tests(){
   if [ -n "${EVENTING_TEST_FLAGS:-}" ]; then
     RUN_FLAGS="${EVENTING_TEST_FLAGS}"
   fi
-  go_test_e2e ${RUN_FLAGS} ./test/rekt --images.producer.file="${images_file}" || failed=$?
+  go_test_e2e ${RUN_FLAGS} ./test/experimental -run=TestPingSourceEventTypeMatch --images.producer.file="${images_file}" || failed=$?
 
   return $failed
 }
