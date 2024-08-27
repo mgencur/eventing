@@ -1,7 +1,7 @@
 # DO NOT EDIT! Generated Dockerfile for cmd/apiserver_receive_adapter.
 
-FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_8_golang_1.22@sha256:7b60d4fc25b0f183adf917bf4091cd4bf192f42ebebd096ca4648c0c48605c8f as golang_builder
-#FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_8_golang_1.22 as builder
+#FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_8_golang_1.22@sha256:7b60d4fc25b0f183adf917bf4091cd4bf192f42ebebd096ca4648c0c48605c8f as golang_builder
+FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_8_golang_1.22 as builder
 
 COPY . .
 
@@ -18,6 +18,6 @@ RUN microdnf install tzdata
 
 USER 65532
 
-COPY --from=golang_builder /usr/bin/main /usr/bin/main
-COPY --from=golang_builder /var/run/ko /var/run/ko
+COPY --from=builder /usr/bin/main /usr/bin/main
+COPY --from=builder /var/run/ko /var/run/ko
 ENTRYPOINT ["/usr/bin/main"]
