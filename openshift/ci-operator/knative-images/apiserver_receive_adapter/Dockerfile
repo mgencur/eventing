@@ -1,6 +1,6 @@
 # DO NOT EDIT! Generated Dockerfile for cmd/apiserver_receive_adapter.
 ARG GO_BUILDER=registry.ci.openshift.org/openshift/release:rhel-8-release-golang-1.22-openshift-4.17
-ARG UBI_MINIMAL=registry.access.redhat.com/ubi8/ubi-minimal
+ARG UBI8_MINIMAL=registry.access.redhat.com/ubi8/ubi-minimal
 
 FROM $GO_BUILDER as builder
 
@@ -11,7 +11,7 @@ RUN mkdir -p /var/run/ko && \
     go build -o /usr/bin/main ./cmd/apiserver_receive_adapter && \
     cp -r cmd/apiserver_receive_adapter/kodata /var/run/ko
 
-FROM $UBI_MINIMAL
+FROM $UBI8_MINIMAL
 
 # install the missing zoneinfo to ubi-minimal
 RUN microdnf install tzdata
