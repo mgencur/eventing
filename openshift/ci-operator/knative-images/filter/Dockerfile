@@ -1,20 +1,33 @@
 # DO NOT EDIT! Generated Dockerfile for cmd/broker/filter.
-FROM registry.ci.openshift.org/openshift/release:rhel-8-release-golang-1.22-openshift-4.17 as builder
+ARG GO_BUILDER=registry.ci.openshift.org/openshift/release:rhel-8-release-golang-1.22-openshift-4.17
+ARG UBI8_MINIMAL=registry.access.redhat.com/ubi8/ubi-minimal
+ARG VERSION=knative-v1.15
+
+FROM $GO_BUILDER as builder
 
 COPY . .
 
-RUN mkdir -p /var/run/ko && \
-    mkdir -p cmd/broker/filter/kodata && \
-    go build -o /usr/bin/main ./cmd/broker/filter && \
-    cp -r cmd/broker/filter/kodata /var/run/ko
+ENV CGO_ENABLED=1
+ENV GOEXPERIMENT=strictfipsruntime
 
-FROM registry.access.redhat.com/ubi8/ubi-minimal
+RUN go build -tags strictfipsruntime -o /usr/bin/main ./cmd/broker/filter
 
-# install the missing zoneinfo to ubi-minimal
+FROM $UBI8_MINIMAL
+
+# Install the missing zoneinfo to ubi-minimal
 RUN microdnf install tzdata
 
 USER 65532
 
 COPY --from=builder /usr/bin/main /usr/bin/main
-COPY --from=builder /var/run/ko /var/run/ko
+
+LABEL \
+      com.redhat.component="openshift-serverless-1-eventing-broker-filter-rhel8-container" \
+      name="openshift-serverless-1/eventing-broker-filter-rhel8" \
+      version="$VERSION" \
+      summary="Red Hat OpenShift Serverless 1 Eventing Broker Filter" \
+      maintainer="serverless-support@redhat.com" \
+      description="Red Hat OpenShift Serverless 1 Eventing Broker Filter" \
+      io.k8s.display-name="Red Hat OpenShift Serverless 1 Eventing Broker Filter"
+
 ENTRYPOINT ["/usr/bin/main"]
