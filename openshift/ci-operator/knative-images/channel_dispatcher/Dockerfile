@@ -1,9 +1,8 @@
 # DO NOT EDIT! Generated Dockerfile for cmd/in_memory/channel_dispatcher.
-ARG GO_BUILDER=registry.ci.openshift.org/openshift/release:rhel-8-release-golang-1.22-openshift-4.17
 ARG UBI8_MINIMAL=registry.access.redhat.com/ubi8/ubi-minimal
 ARG VERSION=knative-v1.15
 
-FROM $GO_BUILDER as builder
+FROM registry.ci.openshift.org/openshift/release:rhel-8-release-golang-1.22-openshift-4.17 as builder
 
 COPY . .
 
